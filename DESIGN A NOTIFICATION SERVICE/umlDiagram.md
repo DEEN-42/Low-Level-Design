@@ -1,3 +1,6 @@
+# UML Class Diagram
+
+```mermaid
 classDiagram
     direction TB
 
@@ -124,3 +127,4 @@ classDiagram
 
     %% NotificationEngine → Strategy (1..*)
     NotificationEngine "1" o--> "1..*" NotificationStrategy : uses
+```
