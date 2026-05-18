@@ -53,7 +53,7 @@ class IParkingSpot {
 public:
     int spotId;
     bool isOccupied;
-    string vehicleType;
+    VehicleType vehicleType;
     virtual ~IParkingSpot() {};
 };
 
@@ -62,7 +62,7 @@ public:
     BikeParkingSpot(int id) {
         spotId = id;
         isOccupied = false;
-        vehicleType = "Bike";
+        vehicleType = VehicleType::Bike;
     }
 };
 
@@ -71,7 +71,7 @@ public:
     CarParkingSpot(int id) {
         spotId = id;
         isOccupied = false;
-        vehicleType = "Car";
+        vehicleType = VehicleType::Car;
     }
 };
 class TruckParkingSpot : public IParkingSpot {
@@ -79,7 +79,7 @@ public:
     TruckParkingSpot(int id) {
         spotId = id;
         isOccupied = false;
-        vehicleType = "Truck";
+        vehicleType = VehicleType::Truck;
     }
 };
 
@@ -183,7 +183,15 @@ class ParkingLot{
 private:
     static ParkingLot* instance;
     vector<IParkingSpot*> parkingSpots;
+    
+    ParkingLot() {} // Private Constructor (Singleton)
 public:
+    ~ParkingLot() {
+        for (auto spot : parkingSpots) {
+            delete spot;
+        }
+        parkingSpots.clear();
+    }
 
     //create parking lot with given number of spots for each type of vehicle
     static void createParkingLot(int carSpots, int bikeSpots, int truckSpots) {
@@ -204,7 +212,7 @@ public:
     //check if parking available for a given type of vehicle
     bool isParkingAvailable(VehicleType type) {
         for (auto spot : parkingSpots) {
-            if (!spot->isOccupied && spot->vehicleType == (type == VehicleType::Car ? "Car" : type == VehicleType::Bike ? "Bike" : "Truck")) {
+            if (!spot->isOccupied && spot->vehicleType == type) {
                 return true;
             }
         }
@@ -214,7 +222,7 @@ public:
     //park a vehicle in the parking lot
     Ticket* parkVehicle(IVehicle* vehicle) {
         for (auto spot : parkingSpots) {
-            if (!spot->isOccupied && spot->vehicleType == (vehicle->type == VehicleType::Car ? "Car" : vehicle->type == VehicleType::Bike ? "Bike" : "Truck")) {
+            if (!spot->isOccupied && spot->vehicleType == vehicle->type) {
                 spot->isOccupied = true;
                 cout << "Vehicle with license plate " << vehicle->licensePlate << " parked in spot " << spot->spotId << endl;
                 return new Ticket(vehicle, spot);
