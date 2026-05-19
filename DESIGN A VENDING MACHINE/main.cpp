@@ -1,11 +1,5 @@
-#include <iostream>
-#include <string>
-#include <vector>
-#include <unordered_map>
-#include <memory>
-
+#include <bits/stdc++.h>
 using namespace std;
-
 #define endl '\n'
 
 //enums for Coin
@@ -20,10 +14,10 @@ enum Coin{
 class Item{
 public:
     string itemName;
-    double itemPrice;
+    int itemPrice;
 
     //constructor
-    Item(string name = "Not Found", double price = 0.0){
+    Item(string name, int price){
         itemName = name;
         itemPrice = price;
     }
@@ -31,29 +25,33 @@ public:
 
 //Inventory
 class Inventory{
-private:
-    unordered_map<string, pair<Item, int>> items; //map of itemName to pair<Item, quantity>
-
 public:
-    //constructor
-    Inventory(){}
+    vector<pair<Item, int>> items;
 
+    //constructor
+    Inventory(){
+        items = vector<pair<Item, int>>();
+    }
     //add item to inventory
     void addItem(Item item, int quantity){
-        items[item.itemName] = make_pair(item, quantity);
+        items.push_back(make_pair(item, quantity));
     }
     //get item by name
     Item getItem(string name){
-        if(items.find(name) != items.end()){
-            return items[name].first;
+        for(auto& item : items){
+            if(item.first.itemName == name){
+                return item.first;
+            }
         }
-        return Item("Not Found", 0.0);
+        // Return a default Item if not found
+        return Item("Not Found", 0);
     }
     //get quantity of item by name
     int getQuantity(string name){
-        auto it = items.find(name);
-        if(it != items.end()){
-            return it->second.second;
+        for(auto& item : items){
+            if(item.first.itemName == name){
+                return item.second;
+            }
         }
         return 0; // Return 0 if not found
     }
@@ -61,32 +59,36 @@ public:
     //get list of items
     vector<Item> getItems(){
         vector<Item> itemList;
-        for(auto& pair : items){
-            itemList.push_back(pair.second.first);
+        for(auto& item : items){
+            itemList.push_back(item.first);
         }
         return itemList;
     }
 
     //reduce quantity of item by name
     void reduceQuantity(string name){
-        auto it = items.find(name);
-        if(it != items.end() && it->second.second > 0){
-            it->second.second--;
+        for(auto& item : items){
+            if(item.first.itemName == name){
+                item.second--;
+                return;
+            }
         }
     }
 
     //update quantity of item by name
     void updateQuantity(string name, int quantity){
-        auto it = items.find(name);
-        if(it != items.end()){
-            it->second.second = quantity;
+        for(auto& item : items){
+            if(item.first.itemName == name){
+                item.second = quantity;
+                return;
+            }
         }
     }
 
     //check if all out of stock
     bool isOutOfStock(){
-        for(auto& pair : items){
-            if(pair.second.second > 0){
+        for(auto& item : items){
+            if(item.second > 0){
                 return false;
             }
         }
@@ -113,10 +115,10 @@ public:
     virtual void insertCoin(VendingMachine* machine, Coin coin) = 0;
     virtual void selectItem(VendingMachine* machine, string itemName) = 0;
     virtual void dispenseItem(VendingMachine* machine) = 0;
-    virtual void refund(VendingMachine* machine) = 0;
     virtual void restockItems(VendingMachine* machine, vector<pair<Item, int>> newItems) = 0;
     virtual void openPanel(VendingMachine* machine) = 0;
     virtual void closePanel(VendingMachine* machine) = 0;
+    virtual void cancelTransaction(VendingMachine* machine) = 0;
 };
 
 //states 
@@ -125,10 +127,10 @@ public:
     void insertCoin(VendingMachine* machine, Coin coin) override;
     void selectItem(VendingMachine* machine, string itemName) override;
     void dispenseItem(VendingMachine* machine) override;
-    void refund(VendingMachine* machine) override;
     void restockItems(VendingMachine* machine, vector<pair<Item, int>> newItems) override;
     void openPanel(VendingMachine* machine) override;
     void closePanel(VendingMachine* machine) override;
+    void cancelTransaction(VendingMachine* machine) override;
 };
 
 class HasCoinState : public VendingMachineState{
@@ -136,10 +138,10 @@ public:
     void insertCoin(VendingMachine* machine, Coin coin) override;
     void selectItem(VendingMachine* machine, string itemName) override;
     void dispenseItem(VendingMachine* machine) override;
-    void refund(VendingMachine* machine) override;
     void restockItems(VendingMachine* machine, vector<pair<Item, int>> newItems) override;
     void openPanel(VendingMachine* machine) override;
     void closePanel(VendingMachine* machine) override;
+    void cancelTransaction(VendingMachine* machine) override;
 };
 
 class DispensingState : public VendingMachineState{
@@ -147,10 +149,10 @@ public:
     void insertCoin(VendingMachine* machine, Coin coin) override;
     void selectItem(VendingMachine* machine, string itemName) override;
     void dispenseItem(VendingMachine* machine) override;
-    void refund(VendingMachine* machine) override;
     void restockItems(VendingMachine* machine, vector<pair<Item, int>> newItems) override;
     void openPanel(VendingMachine* machine) override;
     void closePanel(VendingMachine* machine) override;
+    void cancelTransaction(VendingMachine* machine) override;
 };
 
 class OutOfStockState : public VendingMachineState{
@@ -158,10 +160,10 @@ public:
     void insertCoin(VendingMachine* machine, Coin coin) override;
     void selectItem(VendingMachine* machine, string itemName) override;
     void dispenseItem(VendingMachine* machine) override;
-    void refund(VendingMachine* machine) override;
     void restockItems(VendingMachine* machine, vector<pair<Item, int>> newItems) override;
     void openPanel(VendingMachine* machine) override;
     void closePanel(VendingMachine* machine) override;
+    void cancelTransaction(VendingMachine* machine) override;
 };
 
 class MaintenanceState : public VendingMachineState{
@@ -169,80 +171,97 @@ public:
     void insertCoin(VendingMachine* machine, Coin coin) override;
     void selectItem(VendingMachine* machine, string itemName) override;
     void dispenseItem(VendingMachine* machine) override;
-    void refund(VendingMachine* machine) override;
     void restockItems(VendingMachine* machine, vector<pair<Item, int>> newItems) override;
     void openPanel(VendingMachine* machine) override;
     void closePanel(VendingMachine* machine) override;
+    void cancelTransaction(VendingMachine* machine) override;
 };
 
 //Vending Machine(context class)
 class VendingMachine{
-private:
+public:
     Inventory inventory;
-    double currentBalance;
+    int currentBalance;
     string currentItem;
     VendingMachineState* state;
 
-    unique_ptr<NoCoinState> noCoinState;
-    unique_ptr<HasCoinState> hasCoinState;
-    unique_ptr<DispensingState> dispensingState;
-    unique_ptr<OutOfStockState> outOfStockState;
-    unique_ptr<MaintenanceState> maintenanceState;
-
-public:
+    //to be initialized later
+    VendingMachineState* noCoinState ;
+    VendingMachineState* hasCoinState ;
+    VendingMachineState* dispensingState ;
+    VendingMachineState* outOfStockState ;
+    VendingMachineState* maintenanceState ;
     //constructor
     VendingMachine();
-    ~VendingMachine() = default;
+    ~VendingMachine();
 
-    //getters and setters
-    double getBalance(){ return currentBalance; }
-    void updateBalance(double amount){ currentBalance += amount; }
-    void resetBalance(){ currentBalance = 0.0; }
-    
-    Inventory& getInventory() { return inventory; }
-    string getCurrentItem() { return currentItem; }
-    void setCurrentItem(string item) { currentItem = item; }
-    
-    // Changing states
-    void setState(VendingMachineState* newState) { state = newState; }
+    //get balance
+    int getBalance(){
+        return currentBalance;
+    }
 
-    VendingMachineState* getNoCoinState() { return noCoinState.get(); }
-    VendingMachineState* getHasCoinState() { return hasCoinState.get(); }
-    VendingMachineState* getDispensingState() { return dispensingState.get(); }
-    VendingMachineState* getOutOfStockState() { return outOfStockState.get(); }
-    VendingMachineState* getMaintenanceState() { return maintenanceState.get(); }
+    //update balance
+    void updateBalance(int amount){
+        currentBalance += amount;
+    }
 
-    void insertCoin(Coin coin){ state->insertCoin(this, coin); }
-    void selectItem(string itemName){ state->selectItem(this, itemName); }
-    void dispenseItem(){ state->dispenseItem(this); }
-    void refund(){ state->refund(this); }
-    void restockItems(vector<pair<Item, int>> newItems){ state->restockItems(this, newItems); }
-    void openPanel(){ state->openPanel(this); }
-    void closePanel(){ state->closePanel(this); }
+    //reset balance
+    void resetBalance(){
+        currentBalance = 0;
+    }
+
+    void insertCoin(Coin coin){
+        state->insertCoin(this, coin);
+    }
+    void selectItem(string itemName){
+        state->selectItem(this, itemName);
+    }
+    void dispenseItem(){
+        state->dispenseItem(this);
+    }
+    void restockItems(vector<pair<Item, int>> newItems){
+        state->restockItems(this, newItems);
+    }
+    void openPanel(){
+        state->openPanel(this);
+    }
+    void closePanel(){
+        state->closePanel(this);
+    }
+    void cancelTransaction(){
+        state->cancelTransaction(this);
+    }
 };
 
-//Vending Machine Constructor
+//Vending Machine Constructor & Destructor
 VendingMachine::VendingMachine(){
-    currentBalance = 0.0;
+    currentBalance = 0;
     currentItem = "";
-    noCoinState = make_unique<NoCoinState>();
-    hasCoinState = make_unique<HasCoinState>();
-    dispensingState = make_unique<DispensingState>();
-    outOfStockState = make_unique<OutOfStockState>();
-    maintenanceState = make_unique<MaintenanceState>();
-    
+    noCoinState = (VendingMachineState*) new class NoCoinState();
+    hasCoinState = (VendingMachineState*) new class HasCoinState();
+    dispensingState = (VendingMachineState*) new class DispensingState();
+    outOfStockState = (VendingMachineState*) new class OutOfStockState();
+    maintenanceState = (VendingMachineState*) new class MaintenanceState();
     if(inventory.isOutOfStock()){
-        state = outOfStockState.get();
+        state = outOfStockState;
     }else{
-        state = noCoinState.get();
+        state = noCoinState;
     }
+}
+
+VendingMachine::~VendingMachine(){
+    delete noCoinState;
+    delete hasCoinState;
+    delete dispensingState;
+    delete outOfStockState;
+    delete maintenanceState;
 }
 
 //NoCoinState methods
 void NoCoinState::insertCoin(VendingMachine* machine, Coin coin){
     machine->updateBalance(coin);
     cout << "Inserted coin: " << coin << ". Current balance: " << machine->getBalance() << endl;
-    machine->setState(machine->getHasCoinState());
+    machine->state = machine->hasCoinState;
 }
 void NoCoinState::selectItem(VendingMachine* machine, string itemName){
     cout << "Please insert coin first." << endl;
@@ -250,18 +269,18 @@ void NoCoinState::selectItem(VendingMachine* machine, string itemName){
 void NoCoinState::dispenseItem(VendingMachine* machine){
     cout << "Please insert coin first." << endl;
 }
-void NoCoinState::refund(VendingMachine* machine){
-    cout << "No coins to refund." << endl;
-}
 void NoCoinState::restockItems(VendingMachine* machine, vector<pair<Item, int>> newItems){
     cout << "Denied: Restocking can only happen during Maintenance state." << endl;
 }
 void NoCoinState::openPanel(VendingMachine* machine){
     cout << "Opening maintenance panel. Entering Maintenance State." << endl;
-    machine->setState(machine->getMaintenanceState());
+    machine->state = machine->maintenanceState;
 }
 void NoCoinState::closePanel(VendingMachine* machine){
     cout << "Panel is already closed." << endl;
+}
+void NoCoinState::cancelTransaction(VendingMachine* machine){
+    cout << "No transaction to cancel." << endl;
 }
 
 //HasCoinState methods
@@ -270,12 +289,12 @@ void HasCoinState::insertCoin(VendingMachine* machine, Coin coin){
     cout << "Inserted Additional coin: " << coin << ". Current balance: " << machine->getBalance() << endl;
 }
 void HasCoinState::selectItem(VendingMachine* machine, string itemName){
-    Item item = machine->getInventory().getItem(itemName);
+    Item item = machine->inventory.getItem(itemName);
     if(item.itemName == "Not Found"){
         cout << "Item not found." << endl;
         return;
     }
-    if(machine->getInventory().getQuantity(itemName) <= 0){
+    if(machine->inventory.getQuantity(itemName) <= 0){
         cout << "Item out of stock." << endl;
         return;
     }
@@ -284,26 +303,26 @@ void HasCoinState::selectItem(VendingMachine* machine, string itemName){
         return;
     }
 
-    machine->setCurrentItem(itemName);
-    machine->setState(machine->getDispensingState());
+    machine->currentItem = itemName;
+    machine->state = machine->dispensingState;
     machine->dispenseItem();
 }
 void HasCoinState::dispenseItem(VendingMachine* machine){
     cout << "Please select item first." << endl;
 }
-void HasCoinState::refund(VendingMachine* machine){
-    cout << "Refunding: " << machine->getBalance() << " coins." << endl;
-    machine->resetBalance();
-    machine->setState(machine->getNoCoinState());
-}
 void HasCoinState::restockItems(VendingMachine* machine, vector<pair<Item, int>> newItems){
     cout << "Denied: Restocking can only happen during Maintenance state." << endl;
 }
 void HasCoinState::openPanel(VendingMachine* machine){
-    cout << "Cannot open maintenance panel while money is inserted. Please complete transaction or refund." << endl;
+    cout << "Cannot open maintenance panel while money is inserted. Please complete transaction or cancel." << endl;
 }
 void HasCoinState::closePanel(VendingMachine* machine){
     cout << "Panel is already closed." << endl;
+}
+void HasCoinState::cancelTransaction(VendingMachine* machine){
+    cout << "Transaction cancelled. Refunding balance: " << machine->getBalance() << endl;
+    machine->resetBalance();
+    machine->state = machine->noCoinState;
 }
 
 //DispensingState methods
@@ -314,30 +333,26 @@ void DispensingState::selectItem(VendingMachine* machine, string itemName){
     cout << "Please wait, dispensing item." << endl;
 }
 void DispensingState::dispenseItem(VendingMachine* machine){
-    string curItem = machine->getCurrentItem();
-    cout << "Dispensing item: " << curItem << endl;
-    machine->getInventory().reduceQuantity(curItem);
+    cout << "Dispensing item: " << machine->currentItem << endl;
+    machine->inventory.reduceQuantity(machine->currentItem);
 
     // Calculate change
-    Item item = machine->getInventory().getItem(curItem);
-    double change = machine->getBalance() - item.itemPrice;
+    Item item = machine->inventory.getItem(machine->currentItem);
+    int change = machine->getBalance() - item.itemPrice;
     if(change > 0){
         cout << "Returning change: " << change << endl;
     }
     machine->resetBalance();
-    machine->setCurrentItem("");
+    machine->currentItem = "";
 
-    if(machine->getInventory().isOutOfStock()){
+    if(machine->inventory.isOutOfStock()){
         cout << "Machine is now out of stock." << endl;
-        machine->setState(machine->getOutOfStockState());
+        machine->state = machine->outOfStockState;
     }else{
-        machine->setState(machine->getNoCoinState());
+        machine->state = machine->noCoinState;
     }
 }
 
-void DispensingState::refund(VendingMachine* machine){
-    cout << "Cannot refund while dispensing." << endl;
-}
 void DispensingState::restockItems(VendingMachine* machine, vector<pair<Item, int>> newItems){
     cout << "Denied: Restocking can only happen during Maintenance state." << endl;
 }
@@ -346,6 +361,9 @@ void DispensingState::openPanel(VendingMachine* machine){
 }
 void DispensingState::closePanel(VendingMachine* machine){
     cout << "Panel is already closed." << endl;
+}
+void DispensingState::cancelTransaction(VendingMachine* machine){
+    cout << "Cannot cancel. Already dispensing." << endl;
 }
 
 
@@ -359,18 +377,18 @@ void OutOfStockState::selectItem(VendingMachine* machine, string itemName){
 void OutOfStockState::dispenseItem(VendingMachine* machine){
     cout << "Machine is out of stock. Please wait for restocking." << endl;
 }
-void OutOfStockState::refund(VendingMachine* machine){
-    cout << "No coins to refund." << endl;
-}
 void OutOfStockState::restockItems(VendingMachine* machine, vector<pair<Item, int>> newItems){
     cout << "Denied: Please open the maintenance panel first to restock." << endl;
 }
 void OutOfStockState::openPanel(VendingMachine* machine){
     cout << "Opening maintenance panel. Entering Maintenance State." << endl;
-    machine->setState(machine->getMaintenanceState());
+    machine->state = machine->maintenanceState;
 }
 void OutOfStockState::closePanel(VendingMachine* machine){
     cout << "Panel is already closed." << endl;
+}
+void OutOfStockState::cancelTransaction(VendingMachine* machine){
+    cout << "No transaction to cancel." << endl;
 }
 
 //MaintenanceState methods
@@ -383,20 +401,17 @@ void MaintenanceState::selectItem(VendingMachine* machine, string itemName){
 void MaintenanceState::dispenseItem(VendingMachine* machine){
     cout << "Temporarily disabled. Machine is in Maintenance mode." << endl;
 }
-void MaintenanceState::refund(VendingMachine* machine){
-    cout << "No transaction to refund in Maintenance mode." << endl;
-}
 void MaintenanceState::restockItems(VendingMachine* machine, vector<pair<Item, int>> newItems){
     for(auto& pair : newItems){
-        Item existingItem = machine->getInventory().getItem(pair.first.itemName);
+        Item existingItem = machine->inventory.getItem(pair.first.itemName);
         if(existingItem.itemName != "Not Found"){
             // Item exists, update quantity
-            int previousQty = machine->getInventory().getQuantity(pair.first.itemName);
-            machine->getInventory().updateQuantity(pair.first.itemName, previousQty + pair.second);
+            int previousQty = machine->inventory.getQuantity(pair.first.itemName);
+            machine->inventory.updateQuantity(pair.first.itemName, previousQty + pair.second);
             cout << "Restocked existing item: " << pair.first.itemName << " (Added: " << pair.second << " unit(s))" << endl;
         } else {
             // New item
-            machine->getInventory().addItem(pair.first, pair.second);
+            machine->inventory.addItem(pair.first, pair.second);
             cout << "Added new item: " << pair.first.itemName << " (Quantity: " << pair.second << ")" << endl;
         }
     }
@@ -406,11 +421,14 @@ void MaintenanceState::openPanel(VendingMachine* machine){
 }
 void MaintenanceState::closePanel(VendingMachine* machine){
     cout << "Closing maintenance panel." << endl;
-    if(machine->getInventory().isOutOfStock()){
-        machine->setState(machine->getOutOfStockState());
+    if(machine->inventory.isOutOfStock()){
+        machine->state = machine->outOfStockState;
     } else {
-        machine->setState(machine->getNoCoinState());
+        machine->state = machine->noCoinState;
     }
+}
+void MaintenanceState::cancelTransaction(VendingMachine* machine){
+    cout << "No transaction to cancel in Maintenance mode." << endl;
 }
 
 int main() {
@@ -418,18 +436,24 @@ int main() {
 
     // Adding some initial items to the machine
     machine.openPanel();
-    machine.restockItems({{Item("Soda", 2.0), 10}, {Item("Chips", 1.5), 5}, {Item("Candy", 0.5), 20}});
+    machine.restockItems({{Item("Soda", 2), 10}, {Item("Chips", 10), 5}, {Item("Candy", 5), 20}});
     machine.closePanel();
 
     // Simulating user interactions
     machine.insertCoin(Coin::mediumcoin);
     machine.insertCoin(Coin::smallcoin);
-    machine.selectItem("Soda"); // Not enough money
-
-    machine.refund(); // New refund feature!
+    machine.selectItem("Soda");
 
     machine.insertCoin(Coin::largecoin);
     machine.selectItem("Chips");
+
+    machine.insertCoin(Coin::xlargecoin);
+    machine.selectItem("Candy");
+
+    // Simulating maintenance
+    machine.openPanel();
+    machine.restockItems({{Item("Soda", 1.5), 5}, {Item("Chips", 1.0), 10}});
+    machine.closePanel();
 
     return 0;
 }
